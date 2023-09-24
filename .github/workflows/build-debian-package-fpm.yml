@@ -2,6 +2,8 @@ name: Build Debian Package with FPM
 
 on:
   push:
+    tags:
+      - '*'
     branches:
       - main
 
@@ -25,7 +27,14 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
-
+        
+    - name: Set tag as env variable
+      run: echo "CURRENT_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      
+    - name: Use the tag
+      run: |
+        echo "Current tag is $CURRENT_TAG"
+        
     - name: Change directory
       run: |
         ls -al
