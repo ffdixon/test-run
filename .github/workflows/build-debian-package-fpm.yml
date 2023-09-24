@@ -27,14 +27,16 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
-        
-    - name: Set tag as env variable
-      run: echo "CURRENT_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
-      
-    - name: Use the tag
+
+    - name: Test
       run: |
-        echo "Current tag is $CURRENT_TAG"
+        echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
         
+    - name: Test
+      run: |
+        echo $RELEASE_VERSION
+        echo ${{ env.RELEASE_VERSION }}
+      
     - name: Change directory
       run: |
         ls -al
