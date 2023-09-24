@@ -32,11 +32,9 @@ jobs:
         cd hello-world
 
     - name: Build
-      uses: actions-rs/cargo@v1
-      working-directory: hello-world
-      with:
-        command: build
-        args: --release
+      run: |
+        cd hello-world
+        cargo build --release
 
     - name: Build Debian package with FPM
       run: |
