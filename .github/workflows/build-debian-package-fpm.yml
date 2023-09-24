@@ -13,6 +13,18 @@ jobs:
     - name: Check out the repo
       uses: actions/checkout@v2
 
+    - name: Install FPM
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ruby-dev rubygems gcc make
+        sudo gem install --no-document fpm
+        
+    - name: Install FPM
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ruby-dev rubygems gcc make
+        sudo gem install --no-document fpm
+
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -29,12 +41,6 @@ jobs:
         command: build
         args: --release
         
-    - name: Install FPM
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ruby-dev rubygems gcc make
-        sudo gem install --no-document fpm
-
     - name: Build Debian package with FPM
       run: |
         # Here's a simple example to create a Debian package for a Python script
