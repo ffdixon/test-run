@@ -33,6 +33,7 @@ jobs:
 
     - name: Build
       uses: actions-rs/cargo@v1
+      working-directory: hello-world
       with:
         command: build
         args: --release
