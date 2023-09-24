@@ -1,3 +1,2 @@
 # test-run
-Test using GitHub runners
-Update
+Test using GitHub runners to build packages.
