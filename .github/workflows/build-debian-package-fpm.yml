@@ -19,6 +19,23 @@ jobs:
         sudo apt-get install -y ruby-dev rubygems gcc make
         sudo gem install --no-document fpm
 
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Change directory
+      run: |
+         cd hello-world
+
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release
+
     - name: Build Debian package with FPM
       run: |
         ./build.sh
