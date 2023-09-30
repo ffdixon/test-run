@@ -27,6 +27,7 @@ jobs:
       env:
         DPKG_DISTRIBUTION: "focal"
       run: |
+        cd ${{ github.repository }}
         GIT_SEPARATOR='+'
         DCH_BACKPORT=
         GIT_DESCRIBE=$(git describe --tags)
