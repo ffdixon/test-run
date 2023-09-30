@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world - from CloudSmith!!");
+    println!("Hello, world - from CloudSmith and GitHub Actions!!");
 }
