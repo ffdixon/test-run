@@ -19,6 +19,15 @@ jobs:
         path: source
         fetch-depth: 0
 
+    - name: Print current directory and list files
+      run: |
+        pwd
+        ls -la
+
+    - name: Your Next Steps
+      run: |
+        git status  # Or other Git commands
+
     - name: Install debian packaging tools (fpm, cloudsmith)
       run: |
         apt-get update
