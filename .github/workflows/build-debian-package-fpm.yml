@@ -15,7 +15,14 @@ jobs:
     steps:
     - name: Check out the repo
       uses: actions/checkout@v3
-      
+
+    - name: Install debian packaging tools (fpm, cloudsmith)
+      run: |
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git ruby-dev gcc make python3-pip
+        gem install --no-document fpm
+        pip3 install --upgrade cloudsmith-cli
+
     - name: Set debian package version
       env:
         DPKG_DISTRIBUTION: "focal"
@@ -29,13 +36,6 @@ jobs:
         GIT_EXTRA=${GIT_EXTRA//-/.}
         DCH_VERSION="${GIT_TAG}${DCH_BACKPORT}${GIT_EXTRA}"
         echo "DCH_VERSION=${DCH_VERSION}" | tee -a $GITHUB_ENV
-
-    - name: Install debian packaging tools (fpm, cloudsmith)
-      run: |
-        apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git ruby-dev gcc make python3-pip
-        gem install --no-document fpm
-        pip3 install --upgrade cloudsmith-cli
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
