@@ -52,6 +52,13 @@ jobs:
           DCH_VERSION="${GIT_TAG}${DCH_BACKPORT}${GIT_EXTRA}"
           echo "DCH_VERSION=${DCH_VERSION}" | tee -a $GITHUB_ENV
 
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
       - name: Build
         run: |
           pwd
