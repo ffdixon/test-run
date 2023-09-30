@@ -9,6 +9,7 @@ jobs:
         include:
           - UBUNTU_VERSION: "20.04"
             UBUNTU_CODENAME: "focal"
+
     runs-on: ubuntu-latest
     container: ubuntu:${{ matrix.UBUNTU_VERSION }}
     defaults:
@@ -53,6 +54,7 @@ jobs:
 
       - name: Build
         run: |
+          ls 
           cd hello-world
           cargo build --release
 
