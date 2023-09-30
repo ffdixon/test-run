@@ -34,6 +34,7 @@ jobs:
     - name: Your Next Steps
       run: |
         cd source
+        ls -al
         git status  # Or other Git commands
 
 
@@ -41,8 +42,7 @@ jobs:
       env:
         DPKG_DISTRIBUTION: "focal"
       run: |
-        pwd
-        ls -alR
+        cd source
         GIT_SEPARATOR='+'
         DCH_BACKPORT=
         GIT_DESCRIBE=$(git describe --tags)
