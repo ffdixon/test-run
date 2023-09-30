@@ -27,7 +27,7 @@ jobs:
       env:
         DPKG_DISTRIBUTION: "focal"
       run: |
-        cd ${{ github.repository }}
+        cd "$(echo ${{ github.repository }} | cut -d '/' -f2)"
         GIT_SEPARATOR='+'
         DCH_BACKPORT=
         GIT_DESCRIBE=$(git describe --tags)
