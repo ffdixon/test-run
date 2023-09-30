@@ -1,109 +1,72 @@
-name: Build Debian Package with FPM
-
-on:
-  push:
-    tags:
-      - '*'
-    branches:
-      - main
+name: Package build
+on: push
 
 jobs:
-  build:
+  ubuntu:
+    strategy:
+      matrix:
+        UBUNTU_VERSION: [ "20.04" ]
+        include:
+          - UBUNTU_VERSION: "20.04"
+            UBUNTU_CODENAME: "focal"
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:${{ matrix.UBUNTU_VERSION }}
+    defaults:
+      run:
+        shell: bash
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+      - name: Install debian packaging tools (fpm, cloudsmith)
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends software-properties-common
+          add-apt-repository -y ppa:git-core/ppa
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git ruby-dev gcc make python3-pip
+          gem install --no-document fpm
+          pip3 install --upgrade cloudsmith-cli
 
-    - name: Print current directory and list files
-      run: |
-        pwd
-        ls -la
+      - name: Checkout source code
+        uses: actions/checkout@v3
+        with:
+          path: source
+          fetch-depth: 0
 
-    - name: Install debian packaging tools (fpm, cloudsmith)
-      run: |
-        apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git ruby-dev gcc make python3-pip
-        gem install --no-document fpm
-        pip3 install --upgrade cloudsmith-cli
+      - name: Set debian package version
+        env:
+          UBUNTU_CODENAME: ${{ matrix.UBUNTU_CODENAME }}
+          UBUNTU_VERSION: ${{ matrix.UBUNTU_VERSION }}
+          DPKG_DISTRIBUTION: "focal"
+        run: |
+          cd source
+          GIT_SEPARATOR='+'
+          DCH_BACKPORT=
+          if [[ $DPKG_DISTRIBUTION != $UBUNTU_CODENAME ]]; then
+            DCH_BACKPORT="~$UBUNTU_VERSION"
+          fi
+          GIT_DESCRIBE=$(git describe --tags)
+          GIT_TAG=$(git describe --tags --abbrev=0)
+          GIT_EXTRA=${GIT_DESCRIBE#${GIT_TAG}}
+          GIT_EXTRA=${GIT_EXTRA/-/$GIT_SEPARATOR}
+          GIT_EXTRA=${GIT_EXTRA//-/.}
+          DCH_VERSION="${GIT_TAG}${DCH_BACKPORT}${GIT_EXTRA}"
+          echo "DCH_VERSION=${DCH_VERSION}" | tee -a $GITHUB_ENV
 
-    - name: Your Next Steps
-      run: |
-        ls -al
-        git status  # Or other Git commands
+      - name: Build
+        run: |
+          cd hello-world
+          cargo build --release
 
+      - name: Build Debian package with FPM
+        run: |
+          fpm -s dir -t deb -n hello-world -v "$DCH_VERSION" --prefix=/usr/local/bin/ --chdir=./hello-world/target/release/ hello-world
 
-    - name: Set debian package version
-      env:
-        DPKG_DISTRIBUTION: "focal"
-      run: |
-        cd source
-        GIT_SEPARATOR='+'
-        DCH_BACKPORT=
-        GIT_DESCRIBE=$(git describe --tags)
-        GIT_TAG=$(git describe --tags --abbrev=0)
-        GIT_EXTRA=${GIT_DESCRIBE#${GIT_TAG}}
-        GIT_EXTRA=${GIT_EXTRA/-/$GIT_SEPARATOR}
-        GIT_EXTRA=${GIT_EXTRA//-/.}
-        DCH_VERSION="${GIT_TAG}${DCH_BACKPORT}${GIT_EXTRA}"
-        echo "DCH_VERSION=${DCH_VERSION}" | tee -a $GITHUB_ENV
-
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-
-    - name: skip
-      if: ${{ !env.ACT }}
-      run: echo "Skip"
-
-    - name: skip
-      if: ${{ env.ACT }}
-      run: echo "Not Skip"
-
-    - name: Build
-      run: |
-        cd hello-world
-        cargo build --release
-
-    - name: Build Debian package with FPM
-      run: |
-        fpm -s dir -t deb -n hello-world -v "$DCH_VERSION" --prefix=/usr/local/bin/ --chdir=./hello-world/target/release/ hello-world
-
-    - name: Publish debian package to internal-dev repository
-      env:
-        CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
-        UBUNTU_CODENAME: focal
-        LANG: C.UTF-8
-      run: |
-        set -x
-        for deb in *.deb ; do
-          cloudsmith push deb --tags hello-world --no-wait-for-sync --republish blindsidenetworks/internal-dev/ubuntu/"${UBUNTU_CODENAME}" "${deb}"
-        done
-
-    - name: Get Key
-      env:
-        PUBLIC_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        HOST: droplet-1416.meetbbb.com
-        USER: root
-      run: |
-        # Install SSH client
-        sudo apt-get install -y ssh
-
-        # Write the SSH private key from the secret to a file
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-
-        cat ~/.ssh/id_rsa
-
-        # Use the SSH key to run a command on the remote server
-        ssh -o StrictHostKeyChecking=no $USER@$HOST "ls -al"
-
-        # Clean up (remove the private key file)
-        rm -f private_key
-
+      - name: Publish debian package to internal-dev repository
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+          UBUNTU_CODENAME: ${{ matrix.UBUNTU_CODENAME }}
+          LANG: C.UTF-8
+        run: |
+          set -x
+          for deb in *.deb ; do
+            cloudsmith push deb --tags bbb-playback-capture --no-wait-for-sync --republish blindsidenetworks/internal-dev/ubuntu/"${UBUNTU_CODENAME}" "${deb}"
+          done
