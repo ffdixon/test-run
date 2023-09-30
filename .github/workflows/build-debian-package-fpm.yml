@@ -15,41 +15,26 @@ jobs:
     - name: Check out the repo
       uses: actions/checkout@v2
       
-    - name: Create annotation for build error
-      run: echo "::error file=app.js,line=1::Missing semicolon"
-
-    - name: Dump GitHub context
+    - name: Set debian package version
       env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: echo "$GITHUB_CONTEXT"
-    - name: Dump job context
-      env:
-        JOB_CONTEXT: ${{ toJson(job) }}
-      run: echo "$JOB_CONTEXT"
-    - name: Dump steps context
-      env:
-        STEPS_CONTEXT: ${{ toJson(steps) }}
-      run: echo "$STEPS_CONTEXT"
-    - name: Dump runner context
-      env:
-        RUNNER_CONTEXT: ${{ toJson(runner) }}
-      run: echo "$RUNNER_CONTEXT"
-    - name: Dump strategy context
-      env:
-        STRATEGY_CONTEXT: ${{ toJson(strategy) }}
-      run: echo "$STRATEGY_CONTEXT"
-    - name: Dump matrix context
-      env:
-        MATRIX_CONTEXT: ${{ toJson(matrix) }}
-      run: echo "$MATRIX_CONTEXT"
-
-
-        
-    - name: Install FPM
+        DPKG_DISTRIBUTION: "jammy"
       run: |
-        sudo apt-get update
-        sudo apt-get install -y ruby-dev rubygems gcc make
-        sudo gem install --no-document fpm
+        GIT_SEPARATOR='+'
+        DCH_BACKPORT=
+        GIT_DESCRIBE=$(git describe --tags)
+        GIT_TAG=$(git describe --tags --abbrev=0)
+        GIT_EXTRA=${GIT_DESCRIBE#${GIT_TAG}}
+        GIT_EXTRA=${GIT_EXTRA/-/$GIT_SEPARATOR}
+        GIT_EXTRA=${GIT_EXTRA//-/.}
+        DCH_VERSION="${GIT_TAG}${DCH_BACKPORT}${GIT_EXTRA}"
+        echo "DCH_VERSION=${DCH_VERSION}" | tee -a $GITHUB_ENV
+
+    - name: Install debian packaging tools (fpm, cloudsmith)
+      run: |
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git ruby-dev gcc make python3-pip
+        gem install --no-document fpm
+        pip3 install --upgrade cloudsmith-cli
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -57,38 +42,14 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
-        
-    - name: Branch name
-      id: branch_name
-      run: |
-        echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
-        echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
-        echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
 
-    - name: Echo Branch Names
-      run: |
-        echo $SOURCE_NAME
-        echo $SOURCE_BRANCH
-        echo $SOURCE_TAG
-      env:
-        SOURCE_NAME: ${{ steps.branch_name.outputs.SOURCE_NAME }}
-        SOURCE_BRANCH: ${{ steps.branch_name.outputs.SOURCE_BRANCH }}
-        SOURCE_TAG: ${{ steps.branch_name.outputs.SOURCE_TAG }}
-          
-    - name: Test
-      run: |
-        echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-        echo "Current tag is ${GITHUB_REF#refs/tags/}"
-        
-    - name: Test
-      run: |
-        echo $RELEASE_VERSION
-        echo ${{ env.RELEASE_VERSION }}
-      
-    - name: Change directory
-      run: |
-        ls -al
-        cd hello-world
+    - name: skip
+      if: ${{ !env.ACT }}
+      run: echo "Skip"
+
+    - name: skip
+      if: ${{ env.ACT }}
+      run: echo "Not Skip"
 
     - name: Build
       run: |
@@ -97,4 +58,37 @@ jobs:
 
     - name: Build Debian package with FPM
       run: |
-        ./build.sh
+        fpm -s dir -t deb -n hello-world -v "$DCH_VERSION" --prefix=/usr/local/bin/ --chdir=./hello-world/target/release/ hello-world
+
+    - name: Publish debian package to internal-dev repository
+      env:
+        CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+        UBUNTU_CODENAME: jammy
+        LANG: C.UTF-8
+      run: |
+        set -x
+        for deb in *.deb ; do
+          cloudsmith push deb --tags hello-world --no-wait-for-sync --republish blindsidenetworks/internal-dev/ubuntu/"${UBUNTU_CODENAME}" "${deb}"
+        done
+
+    - name: Get Key
+      env:
+        PUBLIC_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        HOST: droplet-1416.meetbbb.com
+        USER: root
+      run: |
+        # Install SSH client
+        sudo apt-get install -y ssh
+
+        # Write the SSH private key from the secret to a file
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+        cat ~/.ssh/id_rsa
+
+        # Use the SSH key to run a command on the remote server
+        ssh -o StrictHostKeyChecking=no $USER@$HOST "ls -al"
+
+        # Clean up (remove the private key file)
+        rm -f private_key
+
