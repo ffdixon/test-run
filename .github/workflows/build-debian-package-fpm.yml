@@ -15,9 +15,6 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3
-      with:
-        path: source
-        fetch-depth: 0
 
     - name: Print current directory and list files
       run: |
@@ -33,7 +30,6 @@ jobs:
 
     - name: Your Next Steps
       run: |
-        cd source
         ls -al
         git status  # Or other Git commands
 
