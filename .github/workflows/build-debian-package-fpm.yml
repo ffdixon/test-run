@@ -56,7 +56,7 @@ jobs:
         run: |
           pwd
           ls -al
-          cd hello-world
+          cd source/hello-world
           cargo build --release
 
       - name: Build Debian package with FPM
