@@ -54,7 +54,8 @@ jobs:
 
       - name: Build
         run: |
-          ls 
+          pwd
+          ls -al
           cd hello-world
           cargo build --release
 
