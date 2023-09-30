@@ -68,7 +68,7 @@ jobs:
 
       - name: Build Debian package with FPM
         run: |
-          fpm -s dir -t deb -n hello-world -v "$DCH_VERSION" --prefix=/usr/local/bin/ --chdir=./hello-world/target/release/ hello-world
+          fpm -s dir -t deb -n hello-world -v "$DCH_VERSION" --prefix=/usr/local/bin/ --chdir=./source/hello-world/target/release/ hello-world
 
       - name: Publish debian package to internal-dev repository
         env:
