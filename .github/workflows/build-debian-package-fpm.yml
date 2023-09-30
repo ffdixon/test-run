@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ubuntu:${{ matrix.UBUNTU_VERSION }}
+    container: ubuntu:20.04
 
     steps:
     - name: Check out the repo
