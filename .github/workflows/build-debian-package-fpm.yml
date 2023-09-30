@@ -33,6 +33,7 @@ jobs:
 
     - name: Your Next Steps
       run: |
+        cd source
         git status  # Or other Git commands
 
 
