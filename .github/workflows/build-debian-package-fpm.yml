@@ -78,5 +78,5 @@ jobs:
         run: |
           set -x
           for deb in *.deb ; do
-            cloudsmith push deb --tags bbb-playback-capture --no-wait-for-sync --republish blindsidenetworks/internal-dev/ubuntu/"${UBUNTU_CODENAME}" "${deb}"
+            cloudsmith push deb --tags hello-world --no-wait-for-sync --republish blindsidenetworks/internal-dev/ubuntu/"${UBUNTU_CODENAME}" "${deb}"
           done
